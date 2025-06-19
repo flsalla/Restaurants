@@ -7,10 +7,13 @@ import io.mohammedalaamorsi.restaurants.presentation.states.RestaurantDetailsUiS
 import io.mohammedalaamorsi.restaurants.presentation.states.effects.Effect
 import io.mohammedalaamorsi.restaurants.presentation.states.events.RestaurantDetailsEvent
 import io.mohammedalaamorsi.restaurants.utils.DispatchersProvider
+import io.mohammedalaamorsi.restaurants.utils.UiText
+import io.mohammedalaamorsi.resturants.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 
@@ -40,21 +43,20 @@ class RestaurantDetailsViewModel(
     }
 
     private suspend fun loadRestaurantDetailsSection(id: String) {
-        getRestaurantDetailsUseCase.invoke(id).onSuccess {
-            it.collect { response ->
-                if (null == response.data) {
-                    _effects.emit(Effect.ShowSnackbarResource(messageRes = "No restaurant found"))
-                } else {
-                    _state.value = RestaurantDetailsUiState.Result(response)
-                }
-            }
-        }.onFailure {
-            it.message?.let { messageRes ->
-                _effects.emit(
-                    Effect.ShowSnackbarResource(messageRes = messageRes)
+        getRestaurantDetailsUseCase.invoke(id).catch { error ->
+            _state.value = RestaurantDetailsUiState.Error(
+                UiText.StringResource(
+                    R.string.no_results_found,
+                    listOf(error.message ?: "Unknown error")
                 )
+            )
+        }.collect { result ->
+            if (null != result.data) {
+                _state.value = RestaurantDetailsUiState.Result(result)
             }
+
         }
     }
+
 
 }

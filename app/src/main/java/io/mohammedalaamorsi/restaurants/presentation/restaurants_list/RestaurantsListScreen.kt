@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.Color.Companion.Gray
 import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -61,9 +60,13 @@ import io.mohammedalaamorsi.restaurants.data.models.Rating
 import io.mohammedalaamorsi.restaurants.data.models.Region
 import io.mohammedalaamorsi.restaurants.data.models.Relationships
 import io.mohammedalaamorsi.restaurants.presentation.states.RestaurantsUiState
+import io.mohammedalaamorsi.restaurants.presentation.states.UiState
 import io.mohammedalaamorsi.restaurants.presentation.states.effects.Effect
+import io.mohammedalaamorsi.restaurants.presentation.states.events.RestaurantsEvent
 import io.mohammedalaamorsi.restaurants.presentation.ui.ErrorMessage
 import io.mohammedalaamorsi.restaurants.presentation.ui.LoadingIndicator
+import io.mohammedalaamorsi.restaurants.presentation.ui.NoResultsFoundView
+import io.mohammedalaamorsi.restaurants.presentation.ui.SearchComponent
 import io.mohammedalaamorsi.resturants.R
 import org.koin.androidx.compose.koinViewModel
 
@@ -75,13 +78,13 @@ fun RestaurantsListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-
     Scaffold(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
         topBar = {
-            Column {
+            Column(horizontalAlignment =Alignment.CenterHorizontally
+            ) {
                 // App title
                 Text(
                     text = "Restaurants",
@@ -90,6 +93,11 @@ fun RestaurantsListScreen(
                     modifier = Modifier.padding(16.dp),
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                SearchComponent(
+                    isEnabled = state.isSearchEnabled,
+                    onSearch = {
+                    viewModel.onEvent(RestaurantsEvent.DoSearch(it))
+                }, text = state.searchQuery)
             }
         }
     ) { paddingValues ->
@@ -114,42 +122,42 @@ fun RestaurantsListScreen(
 
 @Composable
 fun RestaurantsList(
-    state: RestaurantsUiState,
+    state: UiState,
     paddingValues: PaddingValues,
     onRestaurantClicked: (String) -> Unit
 ) {
     Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize()
     ) {
-        when (state) {
-            is RestaurantsUiState.Error -> {
-                ErrorMessage(state.errorMessage)
+
+
+        if (state.isLoading){
+            LoadingIndicator()
+        }else{
+            when (state.restaurantsState) {
+                is RestaurantsUiState.Error -> {
+                    ErrorMessage(state.restaurantsState.errorMessage)
+                }
+
+                is RestaurantsUiState.Loading -> {
+                    LoadingIndicator()
+                }
+
+                is RestaurantsUiState.Result -> {
+                    RestaurantsList(
+                        restaurants = state.restaurantsState.data,
+                        onRestaurantClicked = onRestaurantClicked
+                    )
+                }
+
+                RestaurantsUiState.Empty -> {
+                    NoResultsFoundView()
+                }
             }
 
-            is RestaurantsUiState.Loading -> {
-                LoadingIndicator()
-            }
-
-            is RestaurantsUiState.Result -> {
-                RestaurantsList(
-                    restaurants = state.data,
-                    onRestaurantClicked = onRestaurantClicked
-                )
-            }
-
-            RestaurantsUiState.Empty -> {
-                Text(
-                    text = stringResource(R.string.no_restaurants_found),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .wrapContentHeight(Alignment.CenterVertically)
-                        .padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

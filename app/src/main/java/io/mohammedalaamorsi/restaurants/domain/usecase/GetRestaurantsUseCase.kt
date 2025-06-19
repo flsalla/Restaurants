@@ -11,17 +11,12 @@ class GetRestaurantsUseCase(
     private val restaurantsRepository: RestaurantsRepository,
     private val dispatchersProvider: DispatchersProvider,
 ) {
-    suspend operator fun invoke(regionId: String): Result<Flow<RestaurantsResponse<List<Data>>>> {
-        return runCatching {
-            restaurantsRepository
-                .fetchRestaurants(regionId = regionId)
-                .flowOn(dispatchersProvider.io)
-        }.onSuccess {
-            it.collect { response ->
-                response.data
-            }
-        }.onFailure { error ->
-            throw Exception("Failed to fetch restaurants: ${error.message}")
-        }
+    suspend operator fun invoke(
+        regionId: String,
+        query: String?
+    ): Flow<RestaurantsResponse<List<Data>>> {
+        return restaurantsRepository
+            .fetchRestaurants(regionId = regionId, query = query)
+            .flowOn(dispatchersProvider.io)
     }
 }

@@ -1,6 +1,9 @@
 package io.mohammedalaamorsi.restaurants.presentation.restaurant_details
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,7 +34,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -45,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
@@ -101,11 +105,23 @@ fun RestaurantsDetailsScreen(viewModel: RestaurantDetailsViewModel, onNavigateBa
                             .align(Alignment.TopStart)
                             .padding(16.dp),
                         navigationIcon = {
-                            IconButton(onClick = { onNavigateBack() }) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White)
+                                    .clickable(
+                                        onClick = onNavigateBack,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = LocalIndication.current
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
-                                    tint = MaterialTheme.colorScheme.onSurface,
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = null
+                                    contentDescription = "Back",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
                         },
@@ -161,16 +177,14 @@ fun RestaurantsDetailsScreen(viewModel: RestaurantDetailsViewModel, onNavigateBa
                     }
 
                     is RestaurantDetailsUiState.Error -> {
-                        ErrorMessage((state as RestaurantDetailsUiState.Error).message.toString())
+                        ErrorMessage((state as RestaurantDetailsUiState.Error).message)
                     }
 
                     is RestaurantDetailsUiState.Result -> {
                         (state as RestaurantDetailsUiState.Result).data.let { data ->
-                            data.data?.let {
                                 RestaurantDetailsLayout(
-                                    includedList = data.included, restaurant = it
+                                    includedList = data.included, restaurant = data.data
                                 )
-                            }
                         }
                     }
                 }
@@ -199,10 +213,10 @@ fun AppBarHeader(
     modifier: Modifier = Modifier, restaurant: RestaurantDetails? = null
 ) {
     AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current).data(restaurant?.imageUrl)
+        model = ImageRequest.Builder(LocalContext.current).data(restaurant?.attributes?.imageUrl)
             .error(R.drawable.placeholder_restaurant).placeholder(R.drawable.placeholder_restaurant)
             .crossfade(true).build(),
-        contentDescription = restaurant?.name,
+        contentDescription = restaurant?.attributes?.name,
         modifier = modifier.fillMaxWidth(),
         contentScale = ContentScale.Crop
     )
@@ -213,7 +227,7 @@ fun AppBarHeader(
 @Composable
 fun RestaurantDetailsLayout(
     includedList: List<Included>?,
-    restaurant: RestaurantDetails,
+    restaurant: RestaurantDetails?,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -229,23 +243,23 @@ fun RestaurantDetailsLayout(
             RestaurantMenuSection(
                 startIcon = Icons.Default.LocationOn,
                 title = "Address: ",
-                description = restaurant.addressLine1 ?: "Radisson Blue Hotel, Business Bay",
+                description = restaurant?.attributes?.addressLine1 ?: "Radisson Blue Hotel, Business Bay",
                 Icons.AutoMirrored.Filled.ArrowForward
             )
 
         }
 
         item {
-            NotesFromRestaurantSection(restaurant.customConfirmationComments)
+            NotesFromRestaurantSection(restaurant?.attributes?.customConfirmationComments)
         }
 
 
         item {
-            RestaurantFeaturesSection(labels = restaurant.labels)
+            RestaurantFeaturesSection(labels = restaurant?.attributes?.labels)
         }
 
         item {
-            OtherVenuesSection(includedList = includedList, cuisine = restaurant.cuisine)
+            OtherVenuesSection(includedList = includedList, cuisine = restaurant?.attributes?.cuisine)
 
         }
     }
@@ -253,7 +267,7 @@ fun RestaurantDetailsLayout(
 
 
 @Composable
-fun RestaurantInfoSection(restaurant: RestaurantDetails) {
+fun RestaurantInfoSection(restaurant: RestaurantDetails?) {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -266,7 +280,7 @@ fun RestaurantInfoSection(restaurant: RestaurantDetails) {
 
             Text(
                 fontWeight = FontWeight.Bold,
-                text = restaurant.name ?: "Restaurant",
+                text = restaurant?.attributes?.name ?: "Restaurant",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -283,7 +297,7 @@ fun RestaurantInfoSection(restaurant: RestaurantDetails) {
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = restaurant.ratingsAverage ?: "4.5",
+                    text = restaurant?.attributes?.ratingsAverage ?: "4.5",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -294,7 +308,7 @@ fun RestaurantInfoSection(restaurant: RestaurantDetails) {
     }
 
     Text(
-        text = restaurant.description ?: "A fine dining experience with exquisite Italian cuisine.",
+        text = restaurant?.attributes?.description ?: "A fine dining experience with exquisite Italian cuisine.",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         lineHeight = 20.sp
@@ -339,7 +353,7 @@ fun RestaurantInfoSection(restaurant: RestaurantDetails) {
             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
         ) {
             Text(
-                text = restaurant.cuisine ?: "Italian Fine Dining",
+                text = restaurant?.attributes?.cuisine ?: "Italian Fine Dining",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium,
@@ -351,7 +365,7 @@ fun RestaurantInfoSection(restaurant: RestaurantDetails) {
     Spacer(modifier = Modifier.height(8.dp))
 
     Text(
-        text = restaurant.addressLine1 ?: "Radisson Blue Hotel, Business Bay",
+        text = restaurant?.attributes?.addressLine1 ?: "Radisson Blue Hotel, Business Bay",
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )

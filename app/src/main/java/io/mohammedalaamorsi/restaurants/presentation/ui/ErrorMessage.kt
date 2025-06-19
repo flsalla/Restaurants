@@ -7,15 +7,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import io.mohammedalaamorsi.restaurants.utils.UiText
 
 @Composable
-fun ErrorMessage(message: String) {
+fun ErrorMessage(message: UiText) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = message,
+            text = message.asString(),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.error
         )

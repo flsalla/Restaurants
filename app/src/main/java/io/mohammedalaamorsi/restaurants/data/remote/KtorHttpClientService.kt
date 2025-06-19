@@ -5,6 +5,8 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
@@ -14,11 +16,11 @@ class KtorHttpClientService(
     private val json: Json,
 ) {
 
-    suspend fun <T> loadRemoteData(
+    fun <T> loadRemoteData(
         apiPath: String,
         serializer: KSerializer<T>,
-    ): Result<T> {
-        try {
+    ): Flow<T> {
+        return flow {
             val httpClient = httpClientProvider.httpClientImp
 
             val response: HttpResponse = httpClient.get(apiPath) {
@@ -27,9 +29,7 @@ class KtorHttpClientService(
 
             val responseBody: String = response.body()
             val parsedData: T = json.decodeFromString(serializer, responseBody)
-            return Result.success(parsedData)
-        } catch (e: Exception) {
-            return Result.failure(e)
+            emit(parsedData)
         }
     }
 }
